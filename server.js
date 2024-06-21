@@ -4,18 +4,22 @@ const { MongoClient, ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const dotenv = require('dotenv'); // Import dotenv
+
+dotenv.config(); // Load environment variables from .env file
+
 const app = express();
 
 app.use(express.static(path.join(__dirname + '/public')));
 const PORT = process.env.PORT || 2700;
 
-const constr = 'mongodb://127.0.0.1:27017';
+const MONGODB_URI = process.env.MONGODB_URI; // Use MongoDB URI from environment variables
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-const JWT_SECRET = 'JWTKEY';
+const JWT_SECRET = process.env.JWT_SECRET; // Use JWT secret from environment variables
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -35,7 +39,7 @@ app.post('/login', async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db('task');
         const user = await db.collection('users').findOne({ UserId });
 
@@ -66,7 +70,7 @@ app.post('/registeruser', async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db('task');
         const existingUser = await db.collection('users').findOne({
             $or: [
@@ -98,7 +102,7 @@ app.get("/task", authenticateToken, async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         const tasks = await db.collection("task").find({ UserId: userId }).toArray(); // Filter tasks by user ID
         res.send(tasks);
@@ -110,14 +114,13 @@ app.get("/task", authenticateToken, async (req, res) => {
     }
 });
 
-
 // Fetch a specific task by ID (Protected Route)
 app.get("/task/:id", authenticateToken, async (req, res) => {
     const taskId = req.params.id;
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         const task = await db.collection("task").findOne({ _id: new ObjectId(taskId) });
 
@@ -134,15 +137,14 @@ app.get("/task/:id", authenticateToken, async (req, res) => {
     }
 });
 
-
 // Get Tasks by Status (Protected Route)
-app.get("/task/:status", authenticateToken, async (req, res) => {
+app.get("/task/status/:status", authenticateToken, async (req, res) => { // Updated route to avoid conflict with task ID route
     const status = req.params.status;
     const query = status === "completed" ? { completed: true } : status === "pending" ? { completed: false } : {};
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         const tasks = await db.collection("task").find(query).toArray();
         res.send(tasks);
@@ -155,7 +157,6 @@ app.get("/task/:status", authenticateToken, async (req, res) => {
 });
 
 // Add Task
-// Add Task
 app.post("/addtask", authenticateToken, async (req, res) => {
     const task = {
         UserId: req.user.UserId, // Add user ID to the task
@@ -165,7 +166,7 @@ app.post("/addtask", authenticateToken, async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         await db.collection("task").insertOne(task);
         res.status(201).send('Task added successfully');
@@ -187,7 +188,7 @@ app.put("/updatetask/:id", authenticateToken, async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         await db.collection("task").updateOne(
             { _id: new ObjectId(taskIdToUpdate) },
@@ -208,7 +209,7 @@ app.delete("/deletetask/:id", authenticateToken, async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         const result = await db.collection("task").deleteOne({ _id: new ObjectId(taskIdToDelete) });
 
@@ -231,7 +232,7 @@ app.put("/markcompleted/:id", authenticateToken, async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         await db.collection("task").updateOne(
             { _id: new ObjectId(taskIdToUpdate) },
@@ -252,7 +253,7 @@ app.put("/markincomplete/:id", authenticateToken, async (req, res) => {
 
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         await db.collection("task").updateOne(
             { _id: new ObjectId(taskIdToUpdate) },
@@ -271,7 +272,7 @@ app.put("/markincomplete/:id", authenticateToken, async (req, res) => {
 app.get("/users", authenticateToken, async (req, res) => {
     let client;
     try {
-        client = await MongoClient.connect(constr);
+        client = await MongoClient.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
         const db = client.db("task");
         const users = await db.collection("users").find({}).toArray();
         res.send(users);
